@@ -1,0 +1,28 @@
+# ============ PlatformIO ============
+# 平台 / 工具链 / 框架约 2 GB，可重新下载，绝不入库
+.platformio/
+.pio/
+
+# ============ Python ============
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ============ 工作区临时目录 ============
+# TEMP / pip 缓存被重定向到这里，纯噪声
+.tmp/
+logs/
+
+# ============ 编辑器 / 操作系统 ============
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ============ CAD 临时产物 ============
+# 正式的 .stl 是要交付的打印件，必须入库；下面只挡临时/派生文件
+cad/preview_*.stl
+cad/_*.stl

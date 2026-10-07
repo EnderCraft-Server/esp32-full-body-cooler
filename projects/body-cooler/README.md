@@ -1,0 +1,245 @@
+# body-cooler —— ESP32 全身降温器（背包式）
+
+用 ESP32-S3 主控，通过 8x11 软管循环冰水实现全身散热。冰袋方案，不用 TEC。
+**365 隔膜泵是有刷电机，只能整段启停，不能 PWM 平滑调速** —— 固件用
+「回差 + 最短启停时间」做间歇控制，本质是**周期以秒/分钟计的慢 PWM**。
+
+```
+冰袋 + 500ml 水 -> PET 密封罐 -> 365 泵 -> 8x11 软管（贴身循环）-> 回 PET 罐
+                        ^                                    |
+                        └──── DS18B20 测水温 / 体表温度 ──────┘
+                                        |
+                                  ESP32 -> 继电器 -> 泵间歇启停
+```
+
+---
+
+## 目录结构
+
+```
+body-cooler/
+  platformio.ini            PlatformIO 配置（ESP32-S3-N16R8）
+  include/
+    config.h                引脚分配、默认参数、编译开关
+    tempsensor.h            DS18B20 多探头异步采集 + 角色映射
+    controller.h            水泵控温状态机
+    inputs.h                v2 输入层（电池/水流/液位/急停/漏水）
+    console.h               串口命令行
+  src/
+    main.cpp                主循环、状态灯、蜂鸣器、备用继电器
+    tempsensor.cpp
+    controller.cpp
+    inputs.cpp
+    console.cpp
+  docs/
+    WIRING-GUIDE.md         ★ 接线总览与电路原理（配三张原理图）
+    ORDER-REVIEW.md         京东订单核对（哪些买错、还要补什么）
+    GPIO-MAP.md             ★ GPIO 完整映射表（v1/v2/禁用脚/接线图）
+    UPGRADE-PLAN.md         ★ 分阶段升级方案（P0~P4）
+    BOM.md                  ★ 采购清单（具体型号 + 搜索关键词 + 避坑）
+    WIRING-REVIEW.md        接线与电源审查（必读，有 6 处必须改）
+    SEALING-REVIEW.md       ★ 密封、冷凝、软管被吸瘪的排查
+    BRINGUP.md              桌面测试 7 步流程（必读，别跳步）
+    PCB-BRIEF.md            ★ PCB 设计规格书（交给硬件工程师画板用）
+    BENCH-TEST.md           ★★ 台架测试 + 事故记录 + 上电前 10 条检查
+    PROJECT-STATUS.md       当前状态：已完成 / 卡脖子的 / 下一步
+  docs/diagrams/            原理图与示意图（PNG + 生成脚本 fig*.py）
+    fig1_power_pump.png     图1 电源分配与水泵主回路
+    fig2_esp32_wiring.png   图2 ESP32-S3 全部引脚接线
+    fig3_water_loop.png     图3 水路走向与保温结构
+    fig4_build_methods.png  图4 搭建方式对比
+    fig5_system_schematic.png 图5 整机系统原理图
+    fig6_terminal_wiring.png 图6 端子排接线图
+    fig7_wearable.png       图7 贴身段固定方案
+  cad/                      3D 打印件：防折螺旋护套（详见 cad/README.md）
+    make_sleeve.py          参数化生成 STL（纯 Python，无第三方依赖）
+    sleeve_*.stl            四种规格：缝宽 2.0 / 1.5 / 1.0 mm
+    render_preview.py       Blender headless 渲染 + 网格检查
+  wiring.html               ★★ 交互式接线指南（双击用浏览器打开）
+```
+
+> **搭建方式已定为「接线端子方案」**（不用面包板、不用画板）。
+> 67 根线的逐条接线表在 `wiring.html` —— 每行标明「从元件上的哪个丝印 → 到元件上的哪个丝印」，
+> 可以边接边打勾，进度自动记住。
+
+---
+
+## 快速开始
+
+```powershell
+# 都在工作区根目录 D:\dsh_Workspaces\ESP32 下执行
+
+# 编译
+.\scripts\pio.ps1 run -d .\projects\body-cooler
+
+# 编译 + 烧录（串口必须显式指定：UART 口是 CH343 -> COM5，原生 USB 口 -> COM6）
+.\scripts\pio.ps1 run -d .\projects\body-cooler -t upload --upload-port COM6
+
+# 看串口（不要用 pio device monitor，在无 TTY 的环境里会报错）
+.\.venv\Scripts\python.exe .\scripts\serial_term.py   --port COM6              # 交互式
+.\.venv\Scripts\python.exe .\scripts\serial_capture.py --port COM6 --seconds 10 --reset
+.\.venv\Scripts\python.exe .\scripts\serial_cmd.py   --port COM6 --step "scan" --step "status@2"
+```
+
+串口 115200，输入 `help` 看命令表，输入 `status` 看状态。
+
+---
+
+## 引脚分配
+
+当前板级 `BOARD_REV = 2`，是 rev1 的**纯超集** —— 没有移动任何已有引脚。
+
+| 功能 | GPIO | 备注 |
+|---|---|---|
+| DS18B20 单总线（5 探头并联） | 4 | 4.7k 上拉到 **3V3** |
+| 继电器 1 → 水泵 | 5 | 主输出 |
+| 继电器 2 / 3 / 4 / 5 → 备用 | 6 / 7 / 15 / 16 | `aux 1` ~ `aux 4` |
+| 有源蜂鸣器（可选） | 17 | |
+| 漏水检测（可选） | 18 | `ENABLE_LEAK_SENSOR` |
+| 电池电压 (ADC1_CH0) | 1 | 分压 100k / 18k |
+| I2C SDA / SCL | 8 / 9 | OLED / INA219 |
+| 水流传感器 | 10 | 信号需 10k+15k 分压 |
+| 液位开关 | 11 | 内部上拉 |
+| 急停按钮（常闭） | 21 | 内部上拉 |
+| 按键 A / B | 38 / 39 | |
+| 板载状态灯 | 48 | DevKitC-1 v1.0 是 WS2812 |
+
+**禁用的引脚**：0 / 3 / 45 / 46（strapping）、19 / 20（原生 USB）、26 ~ 32（flash）、
+33 ~ 37（OPI PSRAM）、43 / 44（UART0）。
+
+> 25 个可用引脚里 rev2 用了 18 个，还剩 7 个空闲。
+> **完整的引脚表、接线图、ADC 注意事项见 `docs/GPIO-MAP.md`。**
+>
+> 所有 v2 新增输入默认**关闭**（`ENABLE_xxx = 0`）—— 没接线时引脚悬空会误报。
+> 接好一根、验证过读数，再把对应开关改成 1。
+
+---
+
+## 控制逻辑
+
+### 三层保护（优先级从高到低）
+
+1. **安全联锁** —— 可打断最短运行时间，立即停泵：
+   体表低于 `skinLow`、水温低于 `waterMin`、读数全部失效、漏水。
+   带 1 度回差自动恢复（漏水除外，必须 `clear`）。
+2. **最短运行 / 最短停机** —— 保护继电器触点和泵的阀片。
+   默认 20 秒 / 30 秒，即每小时最多约 72 次启停。
+3. **需求控制** —— 回差启停（默认）或时间比例。
+
+### 为什么不能用 PWM
+
+有刷电机的换向器和电刷在低频 PWM 下会剧烈打火、发热、噪音大，
+而且隔膜泵在低速下流量急剧下降、阀片拍打异常。所以只能用整段启停，
+靠**时间比例**模拟调速 —— 一个周期几分钟，远大于电机的热时间常数，
+电机每次都按额定转速工作，没有任何副作用。
+
+### 状态机
+
+```
+STANDBY   待机（总开关关 / 手动强制关）
+MONITOR   体表未到开泵阈值，泵停
+REST      泵停，但在等最短停机时间结束
+PUMPING   泵运行中
+FAULT     安全停机（过冷 / 无水 / 传感器失效 / 漏水）
+```
+
+### 默认参数
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `target` | 33.0 度 | 体表目标温度 |
+| `band` | 1.0 度 | 回差：33.5 开泵 / 32.5 停泵 |
+| `slow` | 30.0 度 | 体表下限，低于则强制停泵 |
+| `shigh` | 38.0 度 | 体表上限，高于则报警 |
+| `wmin` | 8.0 度 | 水温下限（**建议实测后调到 10 ~ 12**） |
+| `wmax` | 32.0 度 | 水温上限，高于则报警（冰袋化了） |
+| `mon` / `moff` | 20s / 30s | 最短运行 / 最短停机 |
+| `ice` | 8 min | 冰袋有效性评估窗口 |
+| `mode` | 0 | 0 = 回差启停，1 = 时间比例 |
+
+设好之后 `savecfg` 保存到 NVS，掉电不丢。
+
+### 自检与报警
+
+| 报警 | 触发条件 |
+|---|---|
+| `SKIN_HIGH` | 体表 >= 38 度：冷却失效，注意中暑 |
+| `SKIN_LOW` | 体表 <= 30 度：**立即停泵** |
+| `WATER_LOW` | 出水温 <= 8 度：**立即停泵**，防冷损伤 |
+| `WATER_HIGH` | 出水温 >= 32 度：冰袋化了 / 没水 |
+| `DRY_RUN` | 泵转了 60 秒以上，最冷点还是不冷：干转 / 气堵 |
+| `ICE_MELT` | 连续运行 8 分钟，回水出水温差 < 0.5 度且体表仍热 |
+| `NO_SENSOR` / `SENSOR_FAULT` | 探头缺失或读数全废 -> 拒绝自动控温 |
+| `LEAK` | 漏水（可选功能） |
+
+### 状态灯（板载 WS2812）
+
+| 颜色 | 含义 |
+|---|---|
+| 蓝，3 秒一闪 | 待机 |
+| 绿，1 秒一闪 | 监控中，泵停 |
+| 黄，双闪 | 泵停，在等最短停机 |
+| 青，快闪（2Hz） | **泵运行中** |
+| 橙，双闪 | 有报警 |
+| 红，三连闪 | 故障，泵已强制停 |
+
+---
+
+## 串口命令
+
+| 命令 | 作用 |
+|---|---|
+| `help` | 完整命令表 |
+| `status` / `s` | 打印一次完整状态 |
+| `scan` | 扫描总线，列出 ROM / 角色 / 温度 |
+| `map <role> <idx\|ROM>` | 绑定探头角色（water_out / water_ret / skin_chest / skin_back / ambient） |
+| `automap` / `clearroles` / `roles` | 批量映射 / 清空 / 查看 |
+| `save` | 角色映射写入 NVS |
+| `enable on\|off` | 控温总开关 |
+| `pump on\|off\|auto` | 手动强制水泵（台架排空气用） |
+| `clear` | 清除安全联锁 / 漏水 / 急停 |
+| `aux <1-4> on\|off` | 备用继电器手动开关 |
+| `target` / `band` / `slow` / `shigh` / `wmin` / `wmax` | 各项阈值 |
+| `mon` / `moff` / `ice` / `flow` / `mode` | 时间参数与模式 |
+| `showcfg` / `savecfg` / `defaults` | 查看 / 保存 / 恢复设定 |
+| `log on\|off` / `rate <ms>` | 周期性状态输出 |
+| `stats` | 累计运行时长与启动次数 |
+| `inputs` | 查看所有可选输入的引脚状态 |
+| `batt` | 电池电压（需 `ENABLE_BATT_SENSE`） |
+| `flow` | 实测流量 / 累计水量（需 `ENABLE_FLOW_SENSOR`） |
+| `flowcal <脉冲/升>` | 水流传感器标定（YF-S401=5880，YF-S201=450） |
+
+---
+
+## 审查结论：动手前必须先解决的 5 件事
+
+详细内容见 `docs/WIRING-REVIEW.md` 和 `docs/SEALING-REVIEW.md`。
+
+1. **泵两端加续流二极管**（1N5408，阴极接 +12V）。
+   不加的话，触点拉弧会缩短继电器寿命，反峰还会让 ESP32 随机复位。
+2. **继电器 IN 加 10k 上拉 / 下拉**，保证上电瞬间泵绝对不转。
+3. **暴露段软管套保温棉，罐子套保温套**。
+   不保温时暴露段会白白漏掉约 44W 冷量，和体表实际能带走的热量同一量级 —— **续航直接砍半**。
+4. **10 米软管裁到 4 ~ 5 米**。8mm 内径 10 米管的内容积约 0.50 升，和水箱一样大。
+5. **锂电池加 5A 保险丝 + 3S BMS**，电池和水箱物理隔开，充电时远离水路。
+
+### 关于效果的预期
+
+按 500g 有效冰量估算，系统有效冷量约 214 kJ：
+
+| 状态 | 续航 |
+|---|---|
+| 静息（带走约 40W） | 约 89 分钟 |
+| 活动（带走约 60W，冰消耗更快） | 约 30 ~ 45 分钟 |
+
+**这是「延缓升温 / 局部降温」装备，不是「全身空调」。**
+想延长续航，按性价比排序：加保温 > 加大水量 > 加冰量 > 缩短软管。
+
+---
+
+## 还没有做的部分（下一步可以考虑）
+
+* 蓝牙 / WiFi 手机端看温度和曲线（3 块 S3 里可以拿一块做无线监视端）
+* 液位开关 / 水流开关，从根本上杜绝干转
+* TEC1-12712 那 5 片先留着 —— 继电器 2 ~ 5 和固件的 `aux` 命令已经给它们留好位置了
+* 把 3 个 PET 盒串联成 1.5L 大水箱，延长续航
