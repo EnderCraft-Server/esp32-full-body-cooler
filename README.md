@@ -82,7 +82,8 @@ esp32-full-body-cooler/
 
 ## 文档索引
 
-入口：**`projects/body-cooler/README.md`**
+入口：**`projects/body-cooler/README.md`** —— 其中的
+**「接线口述（控制端 + 输入端）」**一节是完整的分步接线说明（含逐条接线表，不含电容）。
 
 | 文档 | 内容 |
 |---|---|
