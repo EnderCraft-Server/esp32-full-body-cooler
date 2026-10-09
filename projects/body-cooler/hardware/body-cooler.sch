@@ -1,5 +1,5 @@
 EESchema Schematic File Version 4
-LIBS:body-cooler-cache
+LIBS:body-cooler body-cooler-cache
 EELAYER 29 0
 EELAYER END
 $Descr A2 23386 16535
@@ -22,7 +22,7 @@ Text Notes 700 950 0    55   ~ 0
 Text Notes 700 1250 0    75   ~ 0
 【一】12V 电源树
 $Comp
-L body-cooler-cache:BATTERY-3S BT1
+L body-cooler:BATTERY-3S BT1
 U 1 1 5F000001
 P 1500 2300
 F 0 "BT1" H 1540 2370 50  0000 C CNN
@@ -33,7 +33,7 @@ F 3 "" H 1500 2300 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:FUSE F1
+L body-cooler:FUSE F1
 U 1 1 5F000008
 P 2700 1900
 F 0 "F1" H 2740 1970 50  0000 C CNN
@@ -44,7 +44,7 @@ F 3 "" H 2700 1900 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:PWR-MODULE PS1
+L body-cooler:PWR-MODULE PS1
 U 1 1 5F00000F
 P 5900 2300
 F 0 "PS1" H 5940 2370 50  0000 C CNN
@@ -91,7 +91,7 @@ Text Notes 3900 3400 0    75   ~ 0
 Text Notes 3900 3520 0    48   ~ 0
 左右两侧都是 500mil 短支线 + 网络标签，靠名字连接
 $Comp
-L body-cooler-cache:ESP32-S3-DEVKITC U1
+L body-cooler:ESP32-S3-DEVKITC U1
 U 1 1 5F000016
 P 6200 5200
 F 0 "U1" H 6240 5270 50  0000 C CNN
@@ -178,7 +178,7 @@ Text Notes 9600 1250 0    75   ~ 0
 Text Notes 9600 1370 0    48   ~ 0
 IN 拉低 = 吸合；释放时 GPIO 变高阻，由 10k 上拉到 5V 才彻底截止
 $Comp
-L body-cooler-cache:RELAY-5V-LOW K1
+L body-cooler:RELAY-5V-LOW K1
 U 1 1 5F00001D
 P 10400 1900
 F 0 "K1" H 10440 1970 50  0000 C CNN
@@ -211,7 +211,7 @@ PUMP_P
 Text Notes 11320 2120 0    45   ~ 0
 NC 不接
 $Comp
-L body-cooler-cache:RELAY-5V-LOW K2
+L body-cooler:RELAY-5V-LOW K2
 U 1 1 5F000024
 P 10400 3300
 F 0 "K2" H 10440 3370 50  0000 C CNN
@@ -244,7 +244,7 @@ K2_OUT_备用
 Text Notes 11320 3520 0    45   ~ 0
 NC 不接
 $Comp
-L body-cooler-cache:RELAY-5V-LOW K3
+L body-cooler:RELAY-5V-LOW K3
 U 1 1 5F00002B
 P 10400 4700
 F 0 "K3" H 10440 4770 50  0000 C CNN
@@ -277,7 +277,7 @@ K3_OUT_备用
 Text Notes 11320 4920 0    45   ~ 0
 NC 不接
 $Comp
-L body-cooler-cache:RELAY-5V-LOW K4
+L body-cooler:RELAY-5V-LOW K4
 U 1 1 5F000032
 P 10400 6100
 F 0 "K4" H 10440 6170 50  0000 C CNN
@@ -310,7 +310,7 @@ K4_OUT_备用
 Text Notes 11320 6320 0    45   ~ 0
 NC 不接
 $Comp
-L body-cooler-cache:RELAY-5V-LOW K5
+L body-cooler:RELAY-5V-LOW K5
 U 1 1 5F000039
 P 10400 7500
 F 0 "K5" H 10440 7570 50  0000 C CNN
@@ -345,7 +345,7 @@ NC 不接
 Text Notes 13300 1250 0    75   ~ 0
 【四】泵主回路：电池+ -> 保险丝 -> 继电器 COM/NO -> 泵+ -> 泵- -> 电池-
 $Comp
-L body-cooler-cache:PUMP-365 M1
+L body-cooler:PUMP-365 M1
 U 1 1 5F000040
 P 14300 1900
 F 0 "M1" H 14340 1970 50  0000 C CNN
@@ -364,7 +364,7 @@ Wire Wire Line
 Text Label 15700 1900 0    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:D-SCHOTTKY D1
+L body-cooler:D-SCHOTTKY D1
 U 1 1 5F000047
 P 14300 2700
 F 0 "D1" H 14340 2770 50  0000 C CNN
@@ -387,7 +387,7 @@ Text Notes 11800 7900 0    70   ~ 0
 Text Notes 11800 8010 0    48   ~ 0
 ESP32 复位期间 GPIO 是高阻，靠它把 IN 明确拉到 5V，继电器才彻底截止
 $Comp
-L body-cooler-cache:R RP1
+L body-cooler:R RP1
 U 1 1 5F00004E
 P 12300 8800
 F 0 "RP1" H 12340 8870 50  0000 C CNN
@@ -406,7 +406,7 @@ Wire Wire Line
 Text Label 12300 9400 0    50   ~ 0
 K1_IN
 $Comp
-L body-cooler-cache:R RP2
+L body-cooler:R RP2
 U 1 1 5F000055
 P 13300 8800
 F 0 "RP2" H 13340 8870 50  0000 C CNN
@@ -425,7 +425,7 @@ Wire Wire Line
 Text Label 13300 9400 0    50   ~ 0
 K2_IN
 $Comp
-L body-cooler-cache:R RP3
+L body-cooler:R RP3
 U 1 1 5F00005C
 P 14300 8800
 F 0 "RP3" H 14340 8870 50  0000 C CNN
@@ -444,7 +444,7 @@ Wire Wire Line
 Text Label 14300 9400 0    50   ~ 0
 K3_IN
 $Comp
-L body-cooler-cache:R RP4
+L body-cooler:R RP4
 U 1 1 5F000063
 P 15300 8800
 F 0 "RP4" H 15340 8870 50  0000 C CNN
@@ -463,7 +463,7 @@ Wire Wire Line
 Text Label 15300 9400 0    50   ~ 0
 K4_IN
 $Comp
-L body-cooler-cache:R RP5
+L body-cooler:R RP5
 U 1 1 5F00006A
 P 16300 8800
 F 0 "RP5" H 16340 8870 50  0000 C CNN
@@ -486,7 +486,7 @@ Text Notes 700 7900 0    75   ~ 0
 Text Notes 700 8150 0    65   ~ 0
 5.1 DS18B20 单总线温度（4.7k 上拉到 3V3，整条总线只加一只）
 $Comp
-L body-cooler-cache:R R11
+L body-cooler:R R11
 U 1 1 5F000071
 P 1300 9000
 F 0 "R11" H 1340 9070 50  0000 C CNN
@@ -505,7 +505,7 @@ Wire Wire Line
 Text Label 1300 9600 0    50   ~ 0
 OW_DQ
 $Comp
-L body-cooler-cache:DS18B20 T1
+L body-cooler:DS18B20 T1
 U 1 1 5F000078
 P 3000 8800
 F 0 "T1" H 3040 8870 50  0000 C CNN
@@ -528,7 +528,7 @@ Wire Wire Line
 Text Label 2000 9000 2    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:DS18B20 T2
+L body-cooler:DS18B20 T2
 U 1 1 5F00007F
 P 3000 9800
 F 0 "T2" H 3040 9870 50  0000 C CNN
@@ -551,7 +551,7 @@ Wire Wire Line
 Text Label 2000 10000 2    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:DS18B20 T3
+L body-cooler:DS18B20 T3
 U 1 1 5F000086
 P 3000 10800
 F 0 "T3" H 3040 10870 50  0000 C CNN
@@ -578,7 +578,7 @@ Text Notes 1900 11300 0    45   ~ 0
 Text Notes 4500 8150 0    65   ~ 0
 5.2 电池电压采样（100k / 18k = 6.556:1，必须走 ADC1）
 $Comp
-L body-cooler-cache:R R6
+L body-cooler:R R6
 U 1 1 5F00008D
 P 5000 9000
 F 0 "R6" H 5040 9070 50  0000 C CNN
@@ -589,7 +589,7 @@ F 3 "" H 5000 9000 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:R R7
+L body-cooler:R R7
 U 1 1 5F000094
 P 5000 9800
 F 0 "R7" H 5040 9870 50  0000 C CNN
@@ -617,7 +617,7 @@ GND
 Text Notes 6700 8150 0    65   ~ 0
 5.3 水流传感器（5V 方波经 2.2k+10k/20k 分压到 3.11V 进 GPIO10）
 $Comp
-L body-cooler-cache:R R8
+L body-cooler:R R8
 U 1 1 5F00009B
 P 7000 9000
 F 0 "R8" H 7040 9070 50  0000 C CNN
@@ -628,7 +628,7 @@ F 3 "" H 7000 9000 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:R R9
+L body-cooler:R R9
 U 1 1 5F0000A2
 P 7000 9800
 F 0 "R9" H 7040 9870 50  0000 C CNN
@@ -639,7 +639,7 @@ F 3 "" H 7000 9800 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:R R10
+L body-cooler:R R10
 U 1 1 5F0000A9
 P 7000 10600
 F 0 "R10" H 7040 10670 50  0000 C CNN
@@ -650,7 +650,7 @@ F 3 "" H 7000 10600 50  0001 C CNN
 	1    0    0    -1
 $EndComp
 $Comp
-L body-cooler-cache:FLOW-YF-S401 FS1
+L body-cooler:FLOW-YF-S401 FS1
 U 1 1 5F0000B0
 P 8900 9400
 F 0 "FS1" H 8940 9470 50  0000 C CNN
@@ -693,7 +693,7 @@ GND
 Text Notes 700 12000 0    65   ~ 0
 5.4 开关量（全部用 MCU 内部上拉：引脚 — 开关 — GND）
 $Comp
-L body-cooler-cache:SW-LEVER SW1
+L body-cooler:SW-LEVER SW1
 U 1 1 5F0000B7
 P 2100 12500
 F 0 "SW1" H 2140 12570 50  0000 C CNN
@@ -712,7 +712,7 @@ Wire Wire Line
 Text Label 3200 12500 0    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:SW-NC SW2
+L body-cooler:SW-NC SW2
 U 1 1 5F0000BE
 P 5100 12500
 F 0 "SW2" H 5140 12570 50  0000 C CNN
@@ -731,7 +731,7 @@ Wire Wire Line
 Text Label 6200 12500 0    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:SW-PUSH SW3
+L body-cooler:SW-PUSH SW3
 U 1 1 5F0000C5
 P 2100 14000
 F 0 "SW3" H 2140 14070 50  0000 C CNN
@@ -750,7 +750,7 @@ Wire Wire Line
 Text Label 3200 14000 0    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:SW-PUSH SW4
+L body-cooler:SW-PUSH SW4
 U 1 1 5F0000CC
 P 5100 14000
 F 0 "SW4" H 5140 14070 50  0000 C CNN
@@ -769,7 +769,7 @@ Wire Wire Line
 Text Label 6200 14000 0    50   ~ 0
 GND
 $Comp
-L body-cooler-cache:CONN-2 J1
+L body-cooler:CONN-2 J1
 U 1 1 5F0000D3
 P 6300 13000
 F 0 "J1" H 6340 13070 50  0000 C CNN
@@ -792,7 +792,7 @@ J1 两根裸铜线相距 2~3mm，遇水导通
 Text Notes 8300 12000 0    65   ~ 0
 5.5 蜂鸣器（可选）
 $Comp
-L body-cooler-cache:BUZZER LS1
+L body-cooler:BUZZER LS1
 U 1 1 5F0000DA
 P 9200 12500
 F 0 "LS1" H 9240 12570 50  0000 C CNN

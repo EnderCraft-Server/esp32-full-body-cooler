@@ -109,7 +109,8 @@ body, PINMAP, REFS, WIRES, LABELS, PINS = [], {}, [], [], [], []
 def place(name, ref, value, x, y, rot=0):
     a, b, c, d = ROT[rot]
     s = SYMS[name]
-    body.extend(['$Comp', 'L body-cooler-cache:%s %s' % (name, ref),
+    # ★ 用「工程库名:符号名」的标准写法，并把两个库都写进 LIBS 行
+    body.extend(['$Comp', 'L body-cooler:%s %s' % (name, ref),
              'U 1 1 %08X' % (0x5F000000 + len(REFS) * 7 + 1),
              'P %d %d' % (x, y),
              'F 0 "%s" H %d %d 50  0000 C CNN' % (ref, x + 40, y + 70),
@@ -318,7 +319,7 @@ note(11800, 12580, '继电器模块必须和 ESP32 共地，否则改极性也�
 
 # ============================== 输出 + 自检 ==============================
 def schematic_text():
-    head = ['EESchema Schematic File Version 4', 'LIBS:body-cooler-cache',
+    head = ['EESchema Schematic File Version 4', 'LIBS:body-cooler body-cooler-cache',
             'EELAYER 29 0', 'EELAYER END', '$Descr A2 23386 16535', 'Sheet 1 1',
             'Title "ESP32 全身降温器 接线原理图"', 'Date "2026-02-14"', 'Rev "1"',
             'Comp "EnderCraft-Server"',
