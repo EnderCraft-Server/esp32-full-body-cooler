@@ -51,7 +51,13 @@ body-cooler/
     fig5_system_schematic.png 图5 整机系统原理图
     fig6_terminal_wiring.png 图6 端子排接线图
     fig7_wearable.png       图7 贴身段固定方案
-  cad/                      3D 打印件：防折螺旋护套（详见 cad/README.md）
+  hardware/                 ★ 原理图源文件（嘉立创EDA 可导入，详见 hardware/README.md）
+    body-cooler-kicad.zip   ★ 导入用这个（.sch + .lib + 缓存库，已打包）
+    body-cooler.sch         KiCad 旧版 EESchema v4 原理图
+    body-cooler.lib         自定义符号库（15 个符号）
+    make_schematic.py       生成器 + 自检（悬空端点/T接点/交叉）
+    render_schematic.py     不依赖 EDA 软件的 PNG 预览
+  cad/                      3D 打印件：防折螺旋护套 + 转角导弯件（详见 cad/README.md）
     make_sleeve.py          参数化生成 STL（纯 Python，无第三方依赖）
     sleeve_*.stl            四种规格：缝宽 2.0 / 1.5 / 1.0 mm
     render_preview.py       Blender headless 渲染 + 网格检查
@@ -305,6 +311,18 @@ BAT+ ──[R1 100k]──┬── GPIO1 (ADC1_CH0)
 | 24 | 裸铜线 B | ESP32 `GND` | A / B 间隔 2~3mm |
 | 25 | ESP32 `GPIO21` | 常闭开关一端 | 可选 |
 | 26 | 常闭开关另一端 | ESP32 `GND` | |
+
+---
+
+### 5.3.1 原理图源文件
+
+上面这些连接全部已经画成可导入的原理图：`hardware/body-cooler-kicad.zip`。
+
+嘉立创EDA：**文件 → 导入 → KiCAD**，选这个 zip（不能直接选 `.sch`，官方要求必须打成 zip 且带库文件）。
+也可以用 KiCad 直接开 `hardware/body-cooler.sch`。
+
+画法上遵守的规则：**每一处点对点连接都有网络标签**、**不含任何陶瓷/电解电容**、
+继电器按低电平触发 + 开漏驱动画、泵的电流路径上只有保险丝和触点。详见 `hardware/README.md`。
 
 ---
 

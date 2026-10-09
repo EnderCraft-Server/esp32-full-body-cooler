@@ -95,7 +95,8 @@ esp32-full-body-cooler/
 | `docs/BOM.md` | 采购清单（具体型号 + 搜索关键词 + 避坑） |
 | `docs/PCB-BRIEF.md` | 给硬件工程师的 PCB 设计简报 |
 | `docs/diagrams/` | 原理图与示意图（PNG + 生成脚本） |
-| `cad/README.md` | ★ 防折螺旋护套：参数、打印设置、用法 |
+| `hardware/README.md` | ★ 原理图源文件：嘉立创EDA 导入步骤、网络名一览、元件清单 |
+| `cad/README.md` | ★ 3D 打印件：防折螺旋护套 + 转角导弯件 |
 
 ---
 
