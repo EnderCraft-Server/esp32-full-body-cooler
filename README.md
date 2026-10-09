@@ -88,6 +88,7 @@ esp32-full-body-cooler/
 | 文档 | 内容 |
 |---|---|
 | `docs/PROJECT-STATUS.md` | 当前状态、已完成 / 待办 |
+| `docs/WIRING-CHECKLIST.md` | ★★ **逐触点接线总表：85 根线逐根列，接完打勾，用来事后复原** |
 | `docs/BENCH-TEST.md` | ★ 台架测试、事故记录、上电前检查表 |
 | `docs/WIRING-GUIDE.md` | 接线总览与电路原理 |
 | `docs/GPIO-MAP.md` | GPIO 完整映射（含禁用脚说明） |

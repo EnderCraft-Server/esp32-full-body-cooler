@@ -41,6 +41,7 @@ body-cooler/
     SEALING-REVIEW.md       ★ 密封、冷凝、软管被吸瘪的排查
     BRINGUP.md              桌面测试 7 步流程（必读，别跳步）
     PCB-BRIEF.md            ★ PCB 设计规格书（交给硬件工程师画板用）
+    WIRING-CHECKLIST.md     ★★ 逐触点接线总表（85 根线，接完打勾，事后复原用）
     BENCH-TEST.md           ★★ 台架测试 + 事故记录 + 上电前 10 条检查
     PROJECT-STATUS.md       当前状态：已完成 / 卡脖子的 / 下一步
   docs/diagrams/            原理图与示意图（PNG + 生成脚本 fig*.py）
