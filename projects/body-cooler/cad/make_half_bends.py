@@ -15,17 +15,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import make_sleeve_half as MH
 
-R_IN, R_OUT, FLAT_Y, N_PROF = MH.R_IN, MH.R_OUT, MH.FLAT_Y, MH.N_PROF
+FLAT_Y = MH.FLAT_Y      # 截面参数全部走 make_sleeve_half 的 half_profile()
 
 
 def profile():
-    inner, outer = [], []
-    lo, hi = math.pi, 2.0 * math.pi
-    for k in range(N_PROF + 1):
-        t = lo + (hi - lo) * k / N_PROF
-        inner.append((R_IN * math.cos(t), R_IN * math.sin(t)))
-        outer.append((MH.outer_r(t) * math.cos(t), MH.outer_r(t) * math.sin(t)))
-    return inner + outer[::-1]
+    return MH.half_profile()          # 统一用方底 + 顶面半圆槽的截面
 
 
 def path(rc, sweep_deg, leg):
@@ -70,11 +64,10 @@ def build(name, rc, sweep_deg, leg):
             j2 = (j + 1) % P
             try: bm.faces.new([a[j], a[j2], b[j2], b[j]])
             except ValueError: pass
-    n = N_PROF
-    for ring, flip in ((rings[0], False), (rings[-1], True)):
-        for j in range(n):
-            q = [ring[j], ring[j + 1], ring[2 * n - j], ring[2 * n + 1 - j]]
-            try: bm.faces.new(q[::-1] if flip else q)
+    tris = MH.ear_clip(prof)
+    for ring, flip in ((rings[0], True), (rings[-1], False)):
+        for (i0, i1, i2) in tris:
+            try: bm.faces.new([ring[i0], ring[i1], ring[i2]][::-1] if flip else [ring[i0], ring[i1], ring[i2]])
             except ValueError: pass
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)

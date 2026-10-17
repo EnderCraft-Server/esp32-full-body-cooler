@@ -1,69 +1,125 @@
 # -*- coding: utf-8 -*-
 """
-防折护套 —— 可打印版（对开两半，躺平打）
+对接护套 / 转角件 —— 可打印版截面（方底 + 顶面半圆槽）
 
-为什么改：
-  上一版是 Ø12 x 150mm 竖着打的螺旋管，接触面积只有 ~55mm²，高宽比 12.5:1，
-  而且整件是一条连续螺旋带（弹性件），喷嘴一碰就倒 -> 炒面。
+上一版失败原因：平底只有 3.1mm 宽（半圆在底部相切），实机上粘不住床，打一半就飞。
 
-改成对开两半后：
-  * 每半截面是"槽"形，凹面朝上 -> 弯底是凹面（材料在下），**没有任何悬垂**
-  * 底面特意削平（±15° 弧段拉成弦），接触面积 = 3.1 x 150 = 465 mm²，是原来的 8 倍
-  * 零件高度只有 5.8mm -> 不存在细高件倒塌问题
-  * 打印时长也短得多
+这一版截面：
+   ┌──────────────────────────┐   ← 顶面（平的），槽口在这一层敞开
+   │  ╭────────────────────╮  │
+   │ ╱                        ╲ │   ← 半圆槽 Ø8.6，从顶面往下挖 4.3
+   │ ╰───────────────────────╯ │
+   │                          │
+   ╰──────────────────────────╯   ← 全宽 12mm 平底贴床（四角 R0.8 小圆角）
 
-用法: blender -b --factory-startup --python make_sleeve_half.py
+尺寸：全宽 12.0 / 全高 7.0 / 槽 R4.3（Ø8.6）/ 圆角 R0.8
+      -> 侧壁 1.7mm，槽底剩 2.7mm 实心
+
+打印性：
+  * 底面 12 x L 全平 -> 贴床牢
+  * 外壁垂直、顶面平的 -> 无悬垂
+  * 槽是"往上张开的" -> 也没有悬垂
+  整件零支撑。
 """
 import bpy, bmesh, math, os
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 
-R_IN   = 4.3      # 内孔半径（管 Ø8 + 0.6 间隙）
-R_OUT  = 6.0      # 外半径（Ø12）
-FLAT_Y = -5.796   # 削平后的底面高度（对应 ±15° 弧段）
-N_PROF = 48       # 半圆弧分段数
-
-
-def outer_r(theta):
-    """外轮廓半径：±15° 范围内拉成弦，得到 3.1mm 宽的平底"""
-    s = abs(math.sin(theta))
-    r_flat = abs(FLAT_Y)
-    return r_flat / s if (s > r_flat / R_OUT) else R_OUT
+W      = 12.0     # 全宽
+H      = 7.0      # 全高
+R_G    = 4.3      # 半圆槽半径（管 Ø8 + 0.6 间隙）
+CR     = 0.8      # 四角圆角半径（不宜过大）
+N_PROF = 40       # 槽圆弧分段
+FLAT_Y = 0.0      # 底面在 v=0（旧脚本兼容用）
 
 
 def half_profile(n=N_PROF):
-    """对开半壳的截面：内半圆（凹面朝上）+ 削平的外半圆。"""
-    lo, hi = math.pi, 2.0 * math.pi          # 180° -> 360°（下半圈）
-    inner, outer = [], []
-    for k in range(n + 1):
-        t = lo + (hi - lo) * k / n
-        inner.append((R_IN * math.cos(t), R_IN * math.sin(t)))
-        outer.append((outer_r(t) * math.cos(t), outer_r(t) * math.sin(t)))
-    return inner + outer[::-1], n
+    """方底 + 顶面半圆槽的闭合截面环（逆时针）。"""
+    hw = W / 2.0
+
+    def C(cx, cz, deg):
+        a = math.radians(deg)
+        return (cx + CR * math.cos(a), cz + CR * math.sin(a))
+
+    pts = [(-(hw - CR), 0.0), (hw - CR, 0.0)]                    # 底边
+    pts += [C(hw - CR, CR, -90.0 + 90.0 * k / 5) for k in range(1, 6)]      # 右下角
+    pts.append((hw, H - CR))                                     # 右壁
+    pts += [C(hw - CR, H - CR, 0.0 + 90.0 * k / 5) for k in range(1, 6)]    # 右上角
+    pts.append((R_G, H))                                         # 顶面右段
+    pts += [(R_G * math.cos(math.radians(-180.0 * k / n)),
+             H + R_G * math.sin(math.radians(-180.0 * k / n))) for k in range(1, n + 1)]
+    pts.append((-(hw - CR), H))                                  # 顶面左段
+    pts += [C(-(hw - CR), H - CR, 90.0 + 90.0 * k / 5) for k in range(1, 6)]  # 左上角
+    pts.append((-hw, CR))                                        # 左壁
+    pts += [C(-(hw - CR), CR, 180.0 + 90.0 * k / 5) for k in range(1, 6)]     # 左下角
+    # 左下圆弧的终点正好等于起点，去掉避免零长度边（会让三角剖分卡死）
+    if len(pts) > 1 and abs(pts[-1][0] - pts[0][0]) < 1e-9 and abs(pts[-1][1] - pts[0][1]) < 1e-9:
+        pts.pop()
+    return pts
+
+
+def ear_clip(pts):
+    """简单多边形三角剖分（耳切法）—— 用于两端封盖。凹形截面不能用整块 n-gon。"""
+    n = len(pts)
+    idx = list(range(n))
+    def area2(seq):
+        return sum(pts[seq[i]][0] * pts[seq[(i + 1) % len(seq)]][1]
+                   - pts[seq[(i + 1) % len(seq)]][0] * pts[seq[i]][1] for i in range(len(seq)))
+    if area2(idx) < 0:
+        idx.reverse()
+    tris, guard = [], 0
+    while len(idx) > 3 and guard < 20000:
+        guard += 1
+        found = False
+        for k in range(len(idx)):
+            i0, i1, i2 = idx[k - 1], idx[k], idx[(k + 1) % len(idx)]
+            a, b, c = pts[i0], pts[i1], pts[i2]
+            if (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0]) <= 1e-9:
+                continue
+            inside = False
+            for m in idx:
+                if m in (i0, i1, i2):
+                    continue
+                p = pts[m]
+                d1 = (b[0]-a[0])*(p[1]-a[1]) - (b[1]-a[1])*(p[0]-a[0])
+                d2 = (c[0]-b[0])*(p[1]-b[1]) - (c[1]-b[1])*(p[0]-b[0])
+                d3 = (a[0]-c[0])*(p[1]-c[1]) - (a[1]-c[1])*(p[0]-c[0])
+                if d1 >= 0 and d2 >= 0 and d3 >= 0:
+                    inside = True
+                    break
+            if inside:
+                continue
+            tris.append((i0, i1, i2))
+            idx.pop(k)
+            found = True
+            break
+        if not found:
+            break
+    if len(idx) == 3:
+        tris.append((idx[0], idx[1], idx[2]))
+    return tris
 
 
 def build(name, length):
-    prof, n = half_profile()
+    prof = half_profile()
     P = len(prof)
     bm = bmesh.new()
     rings = []
-    # 沿 X 轴扫掠；截面在 YZ 平面（凹面朝上 = +Z），躺平打不需要支撑
-    steps = max(2, int(length / 2.0))
+    steps = max(2, int(round(length / 2.0)))
     for i in range(steps + 1):
         x = length * i / steps
-        ring = [bm.verts.new((x, u, v)) for (u, v) in prof]
-        rings.append(ring)
+        rings.append([bm.verts.new((x, u, v)) for (u, v) in prof])
     for i in range(len(rings) - 1):
         a, b = rings[i], rings[i + 1]
         for j in range(P):
             j2 = (j + 1) % P
             try: bm.faces.new([a[j], a[j2], b[j2], b[j]])
             except ValueError: pass
-    # 两端封盖：内弧点与对应的外弧点之间铺四边形（索引 j 与 2n+1-j 配对）
-    for ring, flip in ((rings[0], False), (rings[-1], True)):
-        for j in range(n):
-            q = [ring[j], ring[j + 1], ring[2 * n - j], ring[2 * n + 1 - j]]
-            try: bm.faces.new(q[::-1] if flip else q)
+    # 两端封盖：耳切法三角化（截面是凹的，不能用整块 n-gon）
+    tris = ear_clip(prof)
+    for ring, flip in ((rings[0], True), (rings[-1], False)):
+        for (i0, i1, i2) in tris:
+            try: bm.faces.new([ring[i0], ring[i1], ring[i2]][::-1] if flip else [ring[i0], ring[i1], ring[i2]])
             except ValueError: pass
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)
@@ -73,24 +129,27 @@ def build(name, length):
     return ob
 
 
-def export(ob, path):
+def export(ob, p):
     bpy.ops.object.select_all(action='DESELECT')
     ob.select_set(True); bpy.context.view_layer.objects.active = ob
-    try: bpy.ops.wm.stl_export(filepath=path, export_selected_objects=True)
-    except TypeError: bpy.ops.wm.stl_export(filepath=path)
-    return os.path.getsize(path)
+    try: bpy.ops.wm.stl_export(filepath=p, export_selected_objects=True)
+    except TypeError: bpy.ops.wm.stl_export(filepath=p)
+    return os.path.getsize(p)
 
 
 VARIANTS = [('sleeve_half_150', 150.0), ('sleeve_half_075', 75.0), ('sleeve_half_050', 50.0)]
 
 if __name__ == '__main__':
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    print('%-20s %8s %8s %8s %10s' % ('variant', 'len', 'verts', 'tris', 'STL bytes'))
+    print('%-20s %8s %8s %10s' % ('variant', 'len', 'verts', 'STL'))
     for name, L in VARIANTS:
         ob = build(name, L)
-        me = ob.data
         p = os.path.join(OUT, name + '.stl')
         sz = export(ob, p)
-        print('%-20s %7.0f %8d %8d %10d' % (name, L, len(me.vertices),
-              sum(len(f.vertices) - 2 for f in me.polygons), sz))
+        bm = bmesh.new(); bm.from_mesh(ob.data)
+        print('%-20s %7.0f %8d %10d   non_manifold=%d open=%d' % (
+            name, L, len(ob.data.vertices), sz,
+            len([e for e in bm.edges if not e.is_manifold]),
+            len([e for e in bm.edges if len(e.link_faces) < 2])))
+        bm.free()
     print('OK ->', OUT)
