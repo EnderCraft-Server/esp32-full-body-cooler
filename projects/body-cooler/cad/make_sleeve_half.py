@@ -25,12 +25,17 @@ import bpy, bmesh, math, os
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 
-W      = 12.0     # 全宽
-H      = 7.0      # 全高
-R_G    = 4.3      # 半圆槽半径（管 Ø8 + 0.6 间隙）
-CR     = 0.8      # 四角圆角半径（不宜过大）
-N_PROF = 40       # 槽圆弧分段
-FLAT_Y = 0.0      # 底面在 v=0（旧脚本兼容用）
+# ---- ★ 全部按管子实际尺寸算：D9 x D10 x 1m，壁厚 0.5mm ----
+TUBE_OD = 10.0                       # 管子外径（丝印 D10 那一项）
+CLEAR   = 0.6                        # 装配间隙
+R_G     = (TUBE_OD + CLEAR) / 2.0    # 半圆槽半径 = 5.3（槽口 Ø10.6）
+WALL    = 1.7                        # 侧壁厚
+BASE    = 2.7                        # 槽底实心厚度
+CR      = 0.8                        # 四角圆角半径（不宜过大）
+W       = TUBE_OD + CLEAR + 2 * WALL # 全宽 = 14.0
+H       = R_G + BASE                 # 全高 = 8.0
+N_PROF  = 40                         # 槽圆弧分段
+FLAT_Y  = 0.0                        # 底面在 v=0（旧脚本兼容用）
 
 
 def half_profile(n=N_PROF):
